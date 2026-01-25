@@ -1,0 +1,28 @@
+{
+  "model": "opus",
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "ralph-wiggum@claude-code-plugins": true
+  },
+  "autoUpdates": true,
+  "bypassPermissionsModeAccepted": true,
+  "includeCoAuthoredBy": false,
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "transcript_path=$(cat | jq -r '.transcript_path'); last_message=$(tail -1 \"$transcript_path\" | jq -r '.message.content[0].text // empty'); notification_json=$(jq -n --arg msg \"$last_message\" '{type: \"agent-turn-complete\", \"last-assistant-message\": $msg}'); \"$HOME/.config/claude/notify.py\" \"$notification_json\" >/dev/null 2>&1 &"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "ccstatusline"
+  },
+  "alwaysThinkingEnabled": true
+}
