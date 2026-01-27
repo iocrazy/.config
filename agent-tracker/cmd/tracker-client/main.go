@@ -1535,9 +1535,10 @@ func runUI(args []string) error {
 
 		if helpVisible {
 			helpLines := []string{
-				"t: toggle Tracker/Notes | Tab: focus goals/notes | n/i: view scope | Alt-A: archive view",
-				"Goals: a add | Enter/c: complete | Shift-D: delete (focus goals first)",
-				"Notes: a add | k edit | Enter/c: complete | Shift-A: archive | Shift-D: delete | Shift-C: show/hide completed | Esc: close | ?: toggle help",
+				"Navigation: h/j/k/l (Vim style) | h/l: view scope | j/k: up/down | f: focus pane",
+				"Goals: a add | Enter/c: complete | Shift-D: delete (Tab to focus goals)",
+				"Notes: a add | i edit | Enter/c: complete | Shift-A: archive | Shift-D: delete | s: cycle scope",
+				"Views: t: Tracker/Notes | Tab: goals/notes | Alt-A: archive | Shift-C: show completed | ?: help",
 			}
 			row := 3
 			for _, line := range helpLines {
@@ -1836,12 +1837,14 @@ func runUI(args []string) error {
 						mode = viewTracker
 					}
 					draw(time.Now())
-				case 'n':
+				case 'h':
+					// Vim style: h = scope left (narrow)
 					if mode == viewNotes {
 						cycleScope(false, false)
 						draw(time.Now())
 					}
-				case 'i':
+				case 'l':
+					// Vim style: l = scope right (widen)
 					if mode == viewNotes {
 						cycleScope(true, false)
 						draw(time.Now())
@@ -1856,7 +1859,8 @@ func runUI(args []string) error {
 						}
 						draw(time.Now())
 					}
-				case 'u':
+				case 'k':
+					// QWERTY: k = move up (was 'u' in Colemak)
 					switch mode {
 					case viewTracker:
 						if taskList.selected > 0 {
@@ -1878,7 +1882,8 @@ func runUI(args []string) error {
 						}
 					}
 					draw(time.Now())
-				case 'e':
+				case 'j':
+					// QWERTY: j = move down (was 'e' in Colemak)
 					switch mode {
 					case viewTracker:
 						tasks := getVisibleTasks()
@@ -1948,7 +1953,8 @@ func runUI(args []string) error {
 						}
 					}
 					draw(time.Now())
-				case 'p':
+				case 'f':
+					// f = focus pane (was 'p')
 					if mode == viewTracker {
 						tasks := getVisibleTasks()
 						if len(tasks) > 0 && taskList.selected < len(tasks) {
@@ -1991,8 +1997,9 @@ func runUI(args []string) error {
 						}
 						draw(time.Now())
 					}
-				case 'k':
-					if mode == viewNotes {
+				case 'i':
+					// Vim style: i = insert/edit (was 'e')
+					if mode == viewNotes && !focusGoals {
 						notes := getVisibleNotes()
 						if len(notes) > 0 && noteList.selected < len(notes) {
 							startEditPrompt(notes[noteList.selected])

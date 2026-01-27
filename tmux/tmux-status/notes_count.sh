@@ -10,12 +10,21 @@ CACHE_FILE="/tmp/tmux-tracker-cache.json"
 state=$(cat "$CACHE_FILE" 2>/dev/null || true)
 [[ -z "$state" ]] && exit 0
 
-count=$(echo "$state" | jq -r --arg wid "$window_id" '
+# Count notes visible in current window:
+# - scope=window AND window_id matches
+# - scope=session AND session_id matches
+# - scope=all OR (scope is empty/null AND no window_id AND no session_id) = Global
+session_id=$(tmux display-message -p '#{session_id}' 2>/dev/null || true)
+count=$(echo "$state" | jq -r --arg wid "$window_id" --arg sid "$session_id" '
   [.notes // [] | .[] | select(
     .archived != true and
     .completed != true and
-    .scope == "window" and
-    .window_id == $wid
+    (
+      (.scope == "window" and .window_id == $wid) or
+      (.scope == "session" and .session_id == $sid) or
+      (.scope == "all") or
+      ((.scope == null or .scope == "") and (.window_id == null or .window_id == "") and (.session_id == null or .session_id == ""))
+    )
   )] | length
 ' 2>/dev/null || echo "0")
 

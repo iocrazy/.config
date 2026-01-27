@@ -36,38 +36,49 @@ startuppopupversion: 1
 nerdFontsVersion: "3"
 showIcons: true
 showFileIcons: true
-keybinding:
-  universal:
-    return: '<esc>'
-    prevItem-alt: 'u'
-    nextItem-alt: 'e'
-    prevBlock-alt: 'n'
-    nextBlock-alt: 'i'
-    nextMatch: '='
-    prevMatch: '-'
-    new: 'k'
-    edit: 'o'
-    openFile: 'O'
-    scrollUpMain-alt1: 'U'
-    scrollDownMain-alt1: 'E'
-    scrollUpMain-alt2: '<c-u>'
-    scrollDownMain-alt2: '<c-e>'
-    undo: 'l'
-    redo: '<c-r>'
-    diffingMenu: 'M'
-    filteringMenu: '<c-f>'
-    toggleRangeSelect: v
-  files:
-    ignoreFile: 'I'
-    IgnoreOrExcludeFile: 'I'
-  commits:
-    moveDownCommit: '<c-e>'
-    moveUpCommit: '<c-u>'
-    openInBrowser: o
-    viewBisectOptions: b
-    startInteractiveRebase: O
-    cherryPickCopy: C
-    pasteCommits: V
-  branches:
-    viewGitFlowOptions: 'I'
-    setUpstream: 'U'
+# 使用 QWERTY 默认键位，以下为常用快捷键参考：
+#
+# === 全局导航 ===
+# j/k          - 上下移动
+# h/l          - 切换面板 (左/右)
+# [ / ]        - 切换到上/下一个面板
+# Tab          - 切换焦点
+# q            - 退出 / 返回上级
+# Esc          - 取消 / 关闭弹窗
+# ?            - 显示快捷键帮助
+#
+# === 文件操作 (Files 面板) ===
+# Space        - 暂存/取消暂存文件
+# a            - 暂存/取消暂存所有文件
+# c            - 提交 (commit)
+# A            - 修改上次提交 (amend)
+# d            - 查看文件差异 / 放弃更改
+# e            - 编辑文件
+# o            - 用默认程序打开文件
+# i            - 添加到 .gitignore
+#
+# === 分支操作 (Branches 面板) ===
+# Space        - 切换分支
+# n            - 新建分支
+# d            - 删除分支
+# r            - rebase 当前分支
+# M            - 合并到当前分支
+# P            - 推送 (push)
+# p            - 拉取 (pull)
+# f            - fetch
+#
+# === 提交操作 (Commits 面板) ===
+# Enter        - 查看提交详情
+# r            - reword (修改提交信息)
+# d            - 删除提交
+# s            - squash (压缩到上一个提交)
+# f            - fixup (压缩但不保留信息)
+# g            - 重置到此提交
+# c            - cherry-pick 复制
+# v            - cherry-pick 粘贴
+#
+# === Stash 操作 ===
+# s            - stash 所有更改
+# S            - stash 选项菜单
+# g            - 应用 stash
+# d            - 删除 stash
