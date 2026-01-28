@@ -1,0 +1,48 @@
+# .agent-config - 项目级配置文件
+# 放置位置: 项目根目录
+# 此文件会被 start-agent 和 resume-agent 读取
+
+# ═══════════════════════════════════════════════════════════════
+# 基本配置
+# ═══════════════════════════════════════════════════════════════
+
+# 基础分支 (创建 worktree 时从这个分支创建)
+BASE_BRANCH="main"
+
+# 浏览器 (chrome / safari / firefox)
+BROWSER="chrome"
+
+# 是否自动打开浏览器
+AUTO_OPEN_BROWSER=true
+
+# ═══════════════════════════════════════════════════════════════
+# 单服务模式配置
+# ═══════════════════════════════════════════════════════════════
+
+# 端口基数 (实际端口 = PORT_BASE + 窗口索引)
+PORT_BASE=3000
+
+# 开发服务器启动命令 ($PORT 会被替换为实际端口)
+# 示例:
+#   Node.js/React/Vue: "npm run dev -- --port \$PORT"
+#   Vite:              "npx vite --port \$PORT"
+#   Python Flask:      "flask run --port \$PORT"
+#   Python Django:     "python manage.py runserver 0.0.0.0:\$PORT"
+#   Go:                "go run . --port \$PORT"
+
+DEV_SERVER_CMD="npm run dev -- --port \$PORT"
+
+# ═══════════════════════════════════════════════════════════════
+# 全栈模式配置 (可选)
+# ═══════════════════════════════════════════════════════════════
+
+# 是否启用全栈模式
+FULLSTACK_MODE=false
+
+# 如果 FULLSTACK_MODE=true，需要配置以下内容:
+# FRONTEND_DIR="frontend"
+# FRONTEND_PORT_BASE=3000
+# FRONTEND_CMD="npm run dev -- --port \$PORT"
+# BACKEND_DIR="backend"
+# BACKEND_PORT_BASE=8000
+# BACKEND_CMD="npm run dev"

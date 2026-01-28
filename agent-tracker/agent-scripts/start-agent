@@ -1,0 +1,415 @@
+#!/usr/bin/env bash
+# start-agent
+# 放置位置: 项目根目录
+# 功能: 使用 Git Worktree 创建独立工作目录，启动 agent window
+#
+# 用法:
+#   ./start-agent "feature-1"    # 创建 feature-1 worktree 和窗口
+#   ./start-agent "fix-bug"      # 创建 fix-bug worktree 和窗口
+#
+# 配置方式 (按优先级):
+#   1. 项目根目录的 .agent-config 文件
+#   2. 脚本内的默认配置
+#
+# ═══════════════════════════════════════════════════════════════
+# 默认配置 (可被 .agent-config 覆盖)
+# ═══════════════════════════════════════════════════════════════
+
+# --- 单服务模式 (默认) ---
+PORT_BASE=9100
+DEV_SERVER_CMD=""
+BROWSER="chrome"
+AUTO_OPEN_BROWSER=true
+BASE_BRANCH="main"
+
+# --- 全栈模式 (FULLSTACK_MODE=true 时启用) ---
+FULLSTACK_MODE=false
+FRONTEND_DIR="frontend"
+FRONTEND_PORT_BASE=3000
+FRONTEND_CMD=""
+BACKEND_DIR="backend"
+BACKEND_PORT_BASE=8000
+BACKEND_CMD=""
+
+# --- .env 端口同步 (可选) ---
+BACKEND_ENV_FILE=""        # 如 ".env"
+BACKEND_PORT_VAR=""        # 如 "APP_PORT"
+FRONTEND_ENV_FILE=""       # 如 ".env"
+FRONTEND_API_VAR=""        # 如 "VITE_API_URL"
+FRONTEND_API_FORMAT=""     # 如 "http://localhost:\$BACKEND_PORT"
+
+# ═══════════════════════════════════════════════════════════════
+# 辅助函数
+# ═══════════════════════════════════════════════════════════════
+
+# 更新 .env 文件中的变量
+update_env_var() {
+    local ENV_FILE="$1"
+    local VAR_NAME="$2"
+    local VAR_VALUE="$3"
+
+    if [[ ! -f "$ENV_FILE" ]]; then
+        echo "$VAR_NAME=$VAR_VALUE" > "$ENV_FILE"
+        return
+    fi
+
+    if grep -q "^${VAR_NAME}=" "$ENV_FILE"; then
+        # 变量存在，更新它 (macOS 兼容)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^${VAR_NAME}=.*|${VAR_NAME}=${VAR_VALUE}|" "$ENV_FILE"
+        else
+            sed -i "s|^${VAR_NAME}=.*|${VAR_NAME}=${VAR_VALUE}|" "$ENV_FILE"
+        fi
+    else
+        # 变量不存在，追加
+        echo "$VAR_NAME=$VAR_VALUE" >> "$ENV_FILE"
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════
+# 脚本逻辑
+# ═══════════════════════════════════════════════════════════════
+
+set -euo pipefail
+
+WINDOW_NAME="${1:-agent}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$SCRIPT_DIR"
+PROJECT_NAME="$(basename "$PROJECT_ROOT")"
+
+# 加载项目配置文件 (如果存在)
+# 支持: .agent-config 或 *.agent-config (如 react.agent-config)
+AGENT_CONFIG_FILE=""
+if [[ -f "$PROJECT_ROOT/.agent-config" ]]; then
+    AGENT_CONFIG_FILE="$PROJECT_ROOT/.agent-config"
+else
+    # 查找 *.agent-config 文件 (取第一个找到的)
+    for f in "$PROJECT_ROOT"/*.agent-config; do
+        if [[ -f "$f" ]]; then
+            AGENT_CONFIG_FILE="$f"
+            break
+        fi
+    done
+fi
+
+if [[ -n "$AGENT_CONFIG_FILE" ]]; then
+    source "$AGENT_CONFIG_FILE"
+    echo -e "\033[1;34m📋 已加载配置: $(basename "$AGENT_CONFIG_FILE")\033[0m"
+fi
+
+AGENTS_DIR="$PROJECT_ROOT/agents/features"
+WORKTREE_DIR="$AGENTS_DIR/$WINDOW_NAME/repo"
+
+# 检查窗口是否已存在
+if tmux list-windows -F '#{window_name}' 2>/dev/null | grep -qx "$WINDOW_NAME"; then
+    echo -e "\033[1;33m⚠️  窗口 '$WINDOW_NAME' 已存在，切换到该窗口\033[0m"
+    tmux select-window -t "$WINDOW_NAME"
+    exit 0
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# Git Worktree: 创建独立工作目录
+# ═══════════════════════════════════════════════════════════════
+
+if [[ -d "$WORKTREE_DIR" ]]; then
+    echo -e "\033[1;33m📁 Worktree 已存在: $WORKTREE_DIR\033[0m"
+else
+    echo -e "\033[1;34m📁 创建 Worktree: $WORKTREE_DIR\033[0m"
+    mkdir -p "$AGENTS_DIR/$WINDOW_NAME"
+
+    if git -C "$PROJECT_ROOT" show-ref --verify --quiet "refs/heads/$WINDOW_NAME" 2>/dev/null; then
+        git -C "$PROJECT_ROOT" worktree add "$WORKTREE_DIR" "$WINDOW_NAME"
+    else
+        git -C "$PROJECT_ROOT" worktree add -b "$WINDOW_NAME" "$WORKTREE_DIR" "$BASE_BRANCH"
+    fi
+    echo -e "\033[1;32m✅ 创建分支: $WINDOW_NAME (from $BASE_BRANCH)\033[0m"
+
+    # 复制 destroy.sh 到 feature 目录
+    [[ -f "$PROJECT_ROOT/destroy.sh" ]] && cp "$PROJECT_ROOT/destroy.sh" "$AGENTS_DIR/$WINDOW_NAME/" && chmod +x "$AGENTS_DIR/$WINDOW_NAME/destroy.sh"
+
+    # 复制 on-tmux-window-activate.sh 到 feature 目录 (可选)
+    [[ -f "$PROJECT_ROOT/on-tmux-window-activate.sh" ]] && cp "$PROJECT_ROOT/on-tmux-window-activate.sh" "$AGENTS_DIR/$WINDOW_NAME/" && chmod +x "$AGENTS_DIR/$WINDOW_NAME/on-tmux-window-activate.sh"
+fi
+
+# 创建新窗口
+tmux new-window -n "$WINDOW_NAME" -c "$WORKTREE_DIR"
+
+# 获取窗口索引 (窗口创建后才能获取准确值)
+WINDOW_INDEX=$(tmux display-message -p '#{window_index}')
+
+# 生成 feature.json 配置文件 (类似博主的设计)
+FEATURE_CONFIG="$AGENTS_DIR/$WINDOW_NAME/feature.json"
+
+# ═══════════════════════════════════════════════════════════════
+# 全栈模式: 4 pane 布局
+# ┌────────────────────────┬──────────────────────┐
+# │                        │      lazygit         │
+# │       主终端           ├──────────────────────┤
+# │      (pane 0)          │  frontend dev server │
+# │                        ├──────────────────────┤
+# │                        │  backend dev server  │
+# └────────────────────────┴──────────────────────┘
+# ═══════════════════════════════════════════════════════════════
+
+if [[ "$FULLSTACK_MODE" == "true" ]]; then
+    FRONTEND_PORT=$((FRONTEND_PORT_BASE + WINDOW_INDEX))
+    BACKEND_PORT=$((BACKEND_PORT_BASE + WINDOW_INDEX))
+
+    FRONTEND_WORK_DIR="$WORKTREE_DIR/$FRONTEND_DIR"
+    BACKEND_WORK_DIR="$WORKTREE_DIR/$BACKEND_DIR"
+
+    # 生成 feature.json
+    cat > "$FEATURE_CONFIG" << EOF
+{
+  "name": "$WINDOW_NAME",
+  "worktree": "$WORKTREE_DIR",
+  "branch": "$WINDOW_NAME",
+  "base_branch": "$BASE_BRANCH",
+  "fullstack": true,
+  "frontend_port": $FRONTEND_PORT,
+  "backend_port": $BACKEND_PORT,
+  "browser": "$BROWSER"
+}
+EOF
+
+    # ═══════════════════════════════════════════════════════════════
+    # 同步 .env 端口配置
+    # ═══════════════════════════════════════════════════════════════
+
+    # 更新后端 .env (如 APP_PORT=8001)
+    if [[ -n "$BACKEND_ENV_FILE" && -n "$BACKEND_PORT_VAR" ]]; then
+        BACKEND_ENV_PATH="$BACKEND_WORK_DIR/$BACKEND_ENV_FILE"
+        update_env_var "$BACKEND_ENV_PATH" "$BACKEND_PORT_VAR" "$BACKEND_PORT"
+        echo -e "\033[1;34m🔧 更新后端 .env: $BACKEND_PORT_VAR=$BACKEND_PORT\033[0m"
+    fi
+
+    # 更新前端 .env (如 VITE_API_URL=http://localhost:8001)
+    if [[ -n "$FRONTEND_ENV_FILE" && -n "$FRONTEND_API_VAR" && -n "$FRONTEND_API_FORMAT" ]]; then
+        FRONTEND_ENV_PATH="$FRONTEND_WORK_DIR/$FRONTEND_ENV_FILE"
+        API_URL="${FRONTEND_API_FORMAT//\$BACKEND_PORT/$BACKEND_PORT}"
+        update_env_var "$FRONTEND_ENV_PATH" "$FRONTEND_API_VAR" "$API_URL"
+        echo -e "\033[1;34m🔧 更新前端 .env: $FRONTEND_API_VAR=$API_URL\033[0m"
+    fi
+
+    # 保存到 tmux window options
+    tmux set-option -w @agent_frontend_port "$FRONTEND_PORT"
+    tmux set-option -w @agent_backend_port "$BACKEND_PORT"
+    tmux set-option -w @agent_dir "$WORKTREE_DIR"
+    tmux set-option -w @agent_main_repo "$PROJECT_ROOT"
+    tmux set-option -w @agent_browser "$BROWSER"
+    tmux set-option -w @agent_name "$WINDOW_NAME"
+    tmux set-option -w @agent_fullstack "true"
+
+    # ═══════════════════════════════════════════════════════════════
+    # 创建 4 pane 布局:
+    # ┌────────────────────────┬──────────────────────┐
+    # │                        │      lazygit         │
+    # │       主终端           │      (pane 1)        │
+    # │      (pane 0)          ├──────────────────────┤
+    # │                        │  frontend server     │
+    # │                        │      (pane 2)        │
+    # │                        ├──────────────────────┤
+    # │                        │  backend server      │
+    # │                        │      (pane 3)        │
+    # └────────────────────────┴──────────────────────┘
+    # ═══════════════════════════════════════════════════════════════
+
+    # 步骤1: 水平分割
+    tmux split-window -h -p 45 -c "$WORKTREE_DIR"
+    # pane 0 = 左边, pane 1 = 右边 (焦点在 pane 1)
+
+    # 步骤2: 在右边垂直分割两次
+    tmux split-window -v -p 66 -c "$WORKTREE_DIR"
+    tmux split-window -v -p 50 -c "$WORKTREE_DIR"
+    # pane 0 = 左边, pane 1 = 右上, pane 2 = 右中, pane 3 = 右下
+
+    # 在右上启动 lazygit (使用 pane ID 而不是编号)
+    tmux send-keys -t "{top-right}" "lazygit" Enter
+
+    # 在右中启动 frontend server
+    if [[ -n "$FRONTEND_CMD" ]]; then
+        CMD="${FRONTEND_CMD//\$PORT/$FRONTEND_PORT}"
+        # 右中是除了 top-right 和 bottom-right 之外的右边 pane
+        tmux send-keys -t :.2 "cd '$FRONTEND_WORK_DIR' && $CMD" Enter
+    fi
+
+    # 在右下启动 backend server
+    if [[ -n "$BACKEND_CMD" ]]; then
+        CMD="${BACKEND_CMD//\$PORT/$BACKEND_PORT}"
+        tmux send-keys -t "{bottom-right}" "cd '$BACKEND_WORK_DIR' && $CMD" Enter
+    fi
+
+    # 在左边主终端显示信息 - 写入临时文件再显示
+    INFO_FILE="$AGENTS_DIR/$WINDOW_NAME/.agent-info"
+    cat > "$INFO_FILE" << EOF
+
+Host path: $WORKTREE_DIR
+Created branch: $WINDOW_NAME (from $BASE_BRANCH)
+Frontend: http://localhost:$FRONTEND_PORT ($FRONTEND_DIR)
+Backend: http://localhost:$BACKEND_PORT ($BACKEND_DIR)
+Config: $FEATURE_CONFIG
+
+EOF
+    tmux send-keys -t "{left}" "clear && cat '$INFO_FILE'" Enter
+
+    # 自动打开浏览器 (前端)
+    if [[ "$AUTO_OPEN_BROWSER" == "true" && -n "$BROWSER" && -n "$FRONTEND_CMD" ]]; then
+        (
+            sleep 3
+            URL="http://localhost:$FRONTEND_PORT"
+            case "$BROWSER" in
+                chrome|"Google Chrome")
+                    osascript -e "tell application \"Google Chrome\" to open location \"$URL\"" 2>/dev/null || true
+                    ;;
+                safari|Safari)
+                    osascript -e "tell application \"Safari\" to open location \"$URL\"" 2>/dev/null || true
+                    ;;
+                *)
+                    open "$URL" 2>/dev/null || true
+                    ;;
+            esac
+        ) &
+    fi
+
+    # 焦点回到左边主终端
+    tmux select-pane -t "{left}"
+
+    # 向 agent-tracker 注册任务
+    TRACKER_CLIENT="${TRACKER_CLIENT:-$HOME/.config/agent-tracker/bin/tracker-client}"
+    if [[ -x "$TRACKER_CLIENT" ]] || command -v tracker-client &>/dev/null; then
+        [[ -x "$TRACKER_CLIENT" ]] || TRACKER_CLIENT="tracker-client"
+        SESSION_NAME=$(tmux display-message -p '#{session_name}')
+        SESSION_ID=$(tmux display-message -p '#{session_id}')
+        WINDOW_ID=$(tmux display-message -p '#{window_id}')
+        PANE_ID=$(tmux display-message -p '#{pane_id}')
+        if "$TRACKER_CLIENT" command start_task \
+            -session "$SESSION_NAME" \
+            -session-id "$SESSION_ID" \
+            -window "$WINDOW_NAME" \
+            -window-id "$WINDOW_ID" \
+            -pane "$PANE_ID" \
+            -summary "Agent: $WINDOW_NAME (fullstack F:$FRONTEND_PORT B:$BACKEND_PORT)" 2>/dev/null; then
+            echo -e "\033[1;32m📋 Task registered to agent-tracker\033[0m"
+        fi
+    fi
+
+# ═══════════════════════════════════════════════════════════════
+# 单服务模式: 3 pane 布局 (默认)
+# ┌────────────────────────┬──────────────────────┐
+# │                        │      lazygit         │
+# │       主终端           ├──────────────────────┤
+# │      (pane 0)          │    dev server        │
+# └────────────────────────┴──────────────────────┘
+# ═══════════════════════════════════════════════════════════════
+
+else
+    PORT=$((PORT_BASE + WINDOW_INDEX))
+
+    # 生成 feature.json
+    cat > "$FEATURE_CONFIG" << EOF
+{
+  "name": "$WINDOW_NAME",
+  "worktree": "$WORKTREE_DIR",
+  "branch": "$WINDOW_NAME",
+  "base_branch": "$BASE_BRANCH",
+  "fullstack": false,
+  "port": $PORT,
+  "browser": "$BROWSER"
+}
+EOF
+
+    # 保存到 tmux window options
+    tmux set-option -w @agent_port "$PORT"
+    tmux set-option -w @agent_dir "$WORKTREE_DIR"
+    tmux set-option -w @agent_main_repo "$PROJECT_ROOT"
+    tmux set-option -w @agent_browser "$BROWSER"
+    tmux set-option -w @agent_name "$WINDOW_NAME"
+
+    # ═══════════════════════════════════════════════════════════════
+    # 创建 3 pane 布局:
+    # ┌────────────────────────┬──────────────────────┐
+    # │                        │      lazygit         │
+    # │       主终端           │      (pane 1)        │
+    # │      (pane 0)          ├──────────────────────┤
+    # │                        │    dev server        │
+    # │                        │      (pane 2)        │
+    # └────────────────────────┴──────────────────────┘
+    # ═══════════════════════════════════════════════════════════════
+
+    # 步骤1: 水平分割 - 当前 pane 在左边保持，新 pane 在右边
+    # -h = horizontal split (左右分割)
+    # -p 45 = 新 pane 占 45%
+    tmux split-window -h -p 45 -c "$WORKTREE_DIR"
+    # 现在: pane 0 = 左边, pane 1 = 右边 (焦点在 pane 1)
+
+    # 步骤2: 在右边 pane (当前焦点) 垂直分割
+    # -v = vertical split (上下分割)
+    # -p 35 = 新 pane (下面) 占 35%
+    tmux split-window -v -p 35 -c "$WORKTREE_DIR"
+    # 现在: pane 0 = 左边, pane 1 = 右上, pane 2 = 右下 (焦点在 pane 2)
+
+    # 调试: 打印 pane 信息
+    # tmux display-panes -d 2000
+
+    # 在 pane 1 (右上) 启动 lazygit
+    tmux send-keys -t "{top-right}" "lazygit" Enter
+
+    # 在 pane 2 (右下) 启动 dev server
+    if [[ -n "$DEV_SERVER_CMD" ]]; then
+        CMD="${DEV_SERVER_CMD//\$PORT/$PORT}"
+        tmux send-keys -t "{bottom-right}" "$CMD" Enter
+    fi
+
+    # 在 pane 0 (左边) 显示信息 - 写入临时文件再显示
+    INFO_FILE="$AGENTS_DIR/$WINDOW_NAME/.agent-info"
+    cat > "$INFO_FILE" << EOF
+
+Host path: $WORKTREE_DIR
+Created branch: $WINDOW_NAME (from $BASE_BRANCH)
+URL: http://localhost:$PORT
+Config: $FEATURE_CONFIG
+
+EOF
+    tmux send-keys -t "{left}" "clear && cat '$INFO_FILE'" Enter
+
+    # 自动打开浏览器
+    if [[ "$AUTO_OPEN_BROWSER" == "true" && -n "$BROWSER" && -n "$DEV_SERVER_CMD" ]]; then
+        (
+            sleep 3
+            URL="http://localhost:$PORT"
+            case "$BROWSER" in
+                chrome|"Google Chrome")
+                    osascript -e "tell application \"Google Chrome\" to open location \"$URL\"" 2>/dev/null || true
+                    ;;
+                safari|Safari)
+                    osascript -e "tell application \"Safari\" to open location \"$URL\"" 2>/dev/null || true
+                    ;;
+                *)
+                    open "$URL" 2>/dev/null || true
+                    ;;
+            esac
+        ) &
+    fi
+
+    # 焦点回到左边主终端
+    tmux select-pane -t "{left}"
+
+    # 向 agent-tracker 注册任务
+    TRACKER_CLIENT="${TRACKER_CLIENT:-$HOME/.config/agent-tracker/bin/tracker-client}"
+    if [[ -x "$TRACKER_CLIENT" ]] || command -v tracker-client &>/dev/null; then
+        [[ -x "$TRACKER_CLIENT" ]] || TRACKER_CLIENT="tracker-client"
+        SESSION_NAME=$(tmux display-message -p '#{session_name}')
+        SESSION_ID=$(tmux display-message -p '#{session_id}')
+        WINDOW_ID=$(tmux display-message -p '#{window_id}')
+        PANE_ID=$(tmux display-message -p '#{pane_id}')
+        if "$TRACKER_CLIENT" command start_task \
+            -session "$SESSION_NAME" \
+            -session-id "$SESSION_ID" \
+            -window "$WINDOW_NAME" \
+            -window-id "$WINDOW_ID" \
+            -pane "$PANE_ID" \
+            -summary "Agent: $WINDOW_NAME (port $PORT)" 2>/dev/null; then
+            echo -e "\033[1;32m📋 Task registered to agent-tracker\033[0m"
+        fi
+    fi
+fi

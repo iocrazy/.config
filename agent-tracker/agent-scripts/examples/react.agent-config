@@ -1,0 +1,14 @@
+# React 前端项目配置 (CRA / Vite)
+# 复制到项目根目录并重命名为 .agent-config
+
+PORT_BASE=3000
+
+# Create React App
+# DEV_SERVER_CMD="PORT=\$PORT npm start"
+
+# Vite (推荐)
+DEV_SERVER_CMD="npm run dev -- --port \$PORT"
+
+BROWSER="chrome"
+AUTO_OPEN_BROWSER=true
+BASE_BRANCH="main"

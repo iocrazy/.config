@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# resume-agent
+# 放置位置: 项目根目录 (如 ~/projects/my_app/)
+# 功能: 恢复/切换到已存在的 agent window，或恢复已有的 worktree
+#
+# 用法:
+#   ./resume-agent              # 交互式选择窗口
+#   ./resume-agent "feature-1"  # 直接切换到 feature-1 窗口
+#
+# 如果 worktree 存在但 tmux 窗口不存在，会自动重新创建窗口
+
+set -euo pipefail
+
+WINDOW_NAME="${1:-}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# 项目根目录
+PROJECT_ROOT="$SCRIPT_DIR"
+
+# agents 目录
+AGENTS_DIR="$PROJECT_ROOT/agents/features"
+
+# ═══════════════════════════════════════════════════════════════
+# 函数: 列出所有可用的 agent (tmux 窗口 + 未打开的 worktree)
+# ═══════════════════════════════════════════════════════════════
+list_agents() {
+    echo -e "\033[1;36m可用 Agent:\033[0m"
+    echo ""
+
+    # 1. 已打开的 tmux 窗口
+    echo -e "\033[1;32m📺 已打开的窗口:\033[0m"
+    tmux list-windows -F '#{window_index}:#{window_name}' 2>/dev/null | while IFS=: read -r idx name; do
+        PORT=$(tmux display-message -t ":$idx" -p '#{@agent_port}' 2>/dev/null || echo "")
+        if [[ -n "$PORT" ]]; then
+            echo "  [$idx] $name (port: $PORT) ✅"
+        else
+            echo "  [$idx] $name"
+        fi
+    done
+
+    # 2. 未打开的 worktree
+    if [[ -d "$AGENTS_DIR" ]]; then
+        echo ""
+        echo -e "\033[1;33m📁 未打开的 Worktree:\033[0m"
+        for dir in "$AGENTS_DIR"/*/repo; do
+            if [[ -d "$dir" ]]; then
+                FEATURE_NAME=$(basename "$(dirname "$dir")")
+                # 检查是否已有对应的 tmux 窗口
+                if ! tmux list-windows -F '#{window_name}' 2>/dev/null | grep -qx "$FEATURE_NAME"; then
+                    echo "  [ ] $FEATURE_NAME (可恢复)"
+                fi
+            fi
+        done
+    fi
+}
+
+# ═══════════════════════════════════════════════════════════════
+# 函数: 恢复 worktree 为新窗口
+# ═══════════════════════════════════════════════════════════════
+restore_worktree() {
+    local NAME="$1"
+    local WORKTREE_DIR="$AGENTS_DIR/$NAME/repo"
+
+    if [[ ! -d "$WORKTREE_DIR" ]]; then
+        echo -e "\033[1;31m❌ Worktree 不存在: $WORKTREE_DIR\033[0m"
+        return 1
+    fi
+
+    # 调用 start-agent（它会检测到 worktree 已存在，不会重复创建）
+    "$SCRIPT_DIR/start-agent" "$NAME"
+}
+
+# ═══════════════════════════════════════════════════════════════
+# 如果指定了窗口名
+# ═══════════════════════════════════════════════════════════════
+if [[ -n "$WINDOW_NAME" ]]; then
+    # 检查 tmux 窗口是否存在
+    if tmux list-windows -F '#{window_name}' 2>/dev/null | grep -qx "$WINDOW_NAME"; then
+        tmux select-window -t "$WINDOW_NAME"
+        PORT=$(tmux display-message -p '#{@agent_port}' 2>/dev/null || echo "")
+        echo -e "\033[1;32m✅ 已切换到窗口: $WINDOW_NAME\033[0m"
+        [[ -n "$PORT" ]] && echo -e "   端口: $PORT"
+        exit 0
+    fi
+
+    # 检查 worktree 是否存在（可以恢复）
+    WORKTREE_DIR="$AGENTS_DIR/$WINDOW_NAME/repo"
+    if [[ -d "$WORKTREE_DIR" ]]; then
+        echo -e "\033[1;33m📁 Worktree 存在但窗口未打开，正在恢复...\033[0m"
+        restore_worktree "$WINDOW_NAME"
+        exit 0
+    fi
+
+    echo -e "\033[1;31m❌ '$WINDOW_NAME' 不存在\033[0m"
+    echo ""
+    list_agents
+    exit 1
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# 交互式选择窗口 (使用 fzf 或简单列表)
+# ═══════════════════════════════════════════════════════════════
+
+# 检查是否有 fzf
+if command -v fzf &>/dev/null; then
+    # 构建选项列表
+    OPTIONS=""
+
+    # 添加已打开的窗口
+    while IFS=: read -r idx name; do
+        PORT=$(tmux display-message -t ":$idx" -p '#{@agent_port}' 2>/dev/null || echo "")
+        if [[ -n "$PORT" ]]; then
+            OPTIONS+="[窗口] $name (port: $PORT)"$'\n'
+        else
+            OPTIONS+="[窗口] $name"$'\n'
+        fi
+    done < <(tmux list-windows -F '#{window_index}:#{window_name}' 2>/dev/null)
+
+    # 添加未打开的 worktree
+    if [[ -d "$AGENTS_DIR" ]]; then
+        for dir in "$AGENTS_DIR"/*/repo; do
+            if [[ -d "$dir" ]]; then
+                FEATURE_NAME=$(basename "$(dirname "$dir")")
+                if ! tmux list-windows -F '#{window_name}' 2>/dev/null | grep -qx "$FEATURE_NAME"; then
+                    OPTIONS+="[恢复] $FEATURE_NAME"$'\n'
+                fi
+            fi
+        done
+    fi
+
+    SELECTED=$(echo -e "$OPTIONS" | grep -v '^$' | fzf --prompt="选择 Agent > " --height=15 --reverse)
+
+    if [[ -n "$SELECTED" ]]; then
+        # 解析选择
+        if [[ "$SELECTED" == "[窗口]"* ]]; then
+            NAME=$(echo "$SELECTED" | sed 's/\[窗口\] //' | cut -d' ' -f1)
+            tmux select-window -t "$NAME"
+            echo -e "\033[1;32m✅ 已切换到窗口: $NAME\033[0m"
+        elif [[ "$SELECTED" == "[恢复]"* ]]; then
+            NAME=$(echo "$SELECTED" | sed 's/\[恢复\] //')
+            restore_worktree "$NAME"
+        fi
+    fi
+else
+    list_agents
+    echo ""
+    read -p "输入窗口名或索引: " INPUT
+
+    if [[ -n "$INPUT" ]]; then
+        # 尝试作为索引
+        if tmux select-window -t "$INPUT" 2>/dev/null; then
+            WINDOW_NAME=$(tmux display-message -p '#{window_name}')
+            echo -e "\033[1;32m✅ 已切换到窗口: $WINDOW_NAME\033[0m"
+        # 尝试作为名称
+        elif tmux list-windows -F '#{window_name}' 2>/dev/null | grep -qx "$INPUT"; then
+            tmux select-window -t "$INPUT"
+            echo -e "\033[1;32m✅ 已切换到窗口: $INPUT\033[0m"
+        # 尝试恢复 worktree
+        elif [[ -d "$AGENTS_DIR/$INPUT/repo" ]]; then
+            restore_worktree "$INPUT"
+        else
+            echo -e "\033[1;31m❌ 无效输入: $INPUT\033[0m"
+        fi
+    fi
+fi

@@ -21,6 +21,7 @@ import (
 
 	"github.com/david/agent-tracker/internal/ipc"
 	"github.com/gdamore/tcell/v2"
+	"github.com/mattn/go-runewidth"
 )
 
 const (
@@ -2180,14 +2181,22 @@ func truncate(text string, width int) string {
 	if width <= 0 {
 		return ""
 	}
-	runes := []rune(text)
-	if len(runes) <= width {
+	// Calculate display width (Chinese chars = 2, ASCII = 1)
+	displayWidth := runewidth.StringWidth(text)
+	if displayWidth <= width {
 		return text
 	}
-	if width <= 1 {
-		return string(runes[:width])
+	// Truncate by display width, not character count
+	runes := []rune(text)
+	currentWidth := 0
+	for i, r := range runes {
+		rw := runewidth.RuneWidth(r)
+		if currentWidth+rw > width-1 { // -1 for ellipsis
+			return string(runes[:i]) + "…"
+		}
+		currentWidth += rw
 	}
-	return string(runes[:width-1]) + "…"
+	return text
 }
 
 func writeStyledLine(s tcell.Screen, x, y int, text string, style tcell.Style) {
@@ -2196,13 +2205,22 @@ func writeStyledLine(s tcell.Screen, x, y int, text string, style tcell.Style) {
 		return
 	}
 	runes := []rune(text)
-	limit := width - x
-	for i := 0; i < limit; i++ {
-		r := rune(' ')
-		if i < len(runes) {
-			r = runes[i]
+	col := x
+	for _, r := range runes {
+		if col >= width {
+			break
 		}
-		s.SetContent(x+i, y, r, nil, style)
+		rw := runewidth.RuneWidth(r)
+		if col+rw > width {
+			break
+		}
+		s.SetContent(col, y, r, nil, style)
+		col += rw
+	}
+	// Fill remaining with spaces
+	for col < width {
+		s.SetContent(col, y, ' ', nil, style)
+		col++
 	}
 }
 
@@ -2210,16 +2228,17 @@ func writeStyledSegments(s tcell.Screen, y int, segments ...struct {
 	text  string
 	style tcell.Style
 }) {
-	x := 0
+	col := 0
 	width, _ := s.Size()
 	for _, seg := range segments {
 		runes := []rune(seg.text)
 		for _, r := range runes {
-			if x >= width {
+			rw := runewidth.RuneWidth(r)
+			if col+rw > width {
 				return
 			}
-			s.SetContent(x, y, r, nil, seg.style)
-			x++
+			s.SetContent(col, y, r, nil, seg.style)
+			col += rw
 		}
 	}
 }
@@ -2228,21 +2247,22 @@ func writeStyledSegmentsPad(s tcell.Screen, y int, segments []struct {
 	text  string
 	style tcell.Style
 }, fill tcell.Style) {
-	x := 0
+	col := 0
 	width, _ := s.Size()
 	for _, seg := range segments {
 		runes := []rune(seg.text)
 		for _, r := range runes {
-			if x >= width {
+			rw := runewidth.RuneWidth(r)
+			if col+rw > width {
 				return
 			}
-			s.SetContent(x, y, r, nil, seg.style)
-			x++
+			s.SetContent(col, y, r, nil, seg.style)
+			col += rw
 		}
 	}
-	for x < width {
-		s.SetContent(x, y, ' ', nil, fill)
-		x++
+	for col < width {
+		s.SetContent(col, y, ' ', nil, fill)
+		col++
 	}
 }
 

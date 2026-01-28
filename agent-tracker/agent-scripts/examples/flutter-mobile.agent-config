@@ -1,0 +1,10 @@
+# Flutter Mobile 项目配置 (iOS/Android 模拟器)
+# 复制到项目根目录并重命名为 .agent-config
+
+PORT_BASE=9100
+DEV_SERVER_CMD="flutter run"  # 会提示选择设备
+# DEV_SERVER_CMD="flutter run -d 'iPhone 15 Pro'"  # 指定 iOS 模拟器
+# DEV_SERVER_CMD="flutter run -d emulator-5554"    # 指定 Android 模拟器
+BROWSER=""
+AUTO_OPEN_BROWSER=false
+BASE_BRANCH="develop"

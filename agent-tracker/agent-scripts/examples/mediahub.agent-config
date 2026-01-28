@@ -1,0 +1,38 @@
+# MediaHub 项目配置 (FastAPI + React/Vite)
+# 基于你截图的项目结构
+
+FULLSTACK_MODE=true
+
+# ═══════════════════════════════════════════════════════════════
+# 前端配置
+# ═══════════════════════════════════════════════════════════════
+FRONTEND_DIR="frontend"
+FRONTEND_PORT_BASE=3000
+FRONTEND_CMD="npm run dev -- --port \$PORT"
+
+# ═══════════════════════════════════════════════════════════════
+# 后端配置
+# ═══════════════════════════════════════════════════════════════
+BACKEND_DIR="backend"
+BACKEND_PORT_BASE=8080
+BACKEND_CMD="source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port \$PORT"
+
+# ═══════════════════════════════════════════════════════════════
+# .env 端口同步 (关键！)
+# ═══════════════════════════════════════════════════════════════
+
+# 后端 .env 配置
+BACKEND_ENV_FILE=".env"
+BACKEND_PORT_VAR="APP_PORT"
+
+# 前端 .env 配置 (告诉前端后端 API 地址)
+FRONTEND_ENV_FILE=".env"
+FRONTEND_API_VAR="VITE_API_URL"
+FRONTEND_API_FORMAT="http://localhost:\$BACKEND_PORT"
+
+# ═══════════════════════════════════════════════════════════════
+# 通用配置
+# ═══════════════════════════════════════════════════════════════
+BROWSER="chrome"
+AUTO_OPEN_BROWSER=true
+BASE_BRANCH="master"

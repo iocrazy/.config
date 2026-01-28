@@ -1,0 +1,10 @@
+# Node.js 后端项目配置
+# 复制到项目根目录并重命名为 .agent-config
+
+PORT_BASE=4000
+DEV_SERVER_CMD="npm run dev -- --port \$PORT"
+# 或者用 yarn:
+# DEV_SERVER_CMD="yarn dev --port \$PORT"
+BROWSER=""  # 后端项目通常不需要浏览器
+AUTO_OPEN_BROWSER=false
+BASE_BRANCH="main"
