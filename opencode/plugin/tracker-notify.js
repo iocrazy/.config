@@ -1,12 +1,45 @@
-const NOTIFY_BIN = "/usr/bin/python3";
-const NOTIFY_SCRIPT = "/Users/david/.config/codex/notify.py";
-const MAX_SUMMARY_CHARS = 600;
-const TRACKER_BIN = "/Users/david/.config/agent-tracker/bin/tracker-client";
+import fs from "fs";
+import { spawn } from "child_process";
 
-export const TrackerNotifyPlugin = async ({ client, directory, $ }) => {
+const HOME = process.env.HOME || "/tmp";
+const NOTIFY_BIN = "/opt/homebrew/bin/python3";
+const NOTIFY_SCRIPT = `${HOME}/.config/agent-tracker/notify.py`;
+const MAX_SUMMARY_CHARS = 600;
+const TRACKER_BIN = `${HOME}/.config/agent-tracker/bin/tracker-client`;
+const DEBUG_LOG = `${HOME}/.config/opencode/tracker-debug.log`;
+
+// Helper to run tracker-client with proper argument handling
+const runTracker = (args) => {
+	return new Promise((resolve) => {
+		const proc = spawn(TRACKER_BIN, args, { stdio: "pipe" });
+		let stderr = "";
+		proc.stderr?.on("data", (data) => { stderr += data.toString(); });
+		proc.on("close", (code) => {
+			resolve({ exitCode: code, stderr });
+		});
+		proc.on("error", (err) => {
+			resolve({ exitCode: -1, stderr: err.message });
+		});
+	});
+};
+
+const debugLog = (msg) => {
+	const now = new Date();
+	const utc8 = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+	const timestamp = utc8.toISOString().replace("Z", "+08:00");
+	fs.appendFileSync(DEBUG_LOG, `[${timestamp}] ${msg}\n`);
+};
+
+// OpenCode plugin for agent-tracker integration
+// Tracks task start/finish when Claude is busy/idle
+export default async ({ client, directory, $ }) => {
+	debugLog(`Plugin loaded. HOME=${HOME}, TRACKER_BIN=${TRACKER_BIN}`);
+
 	// Only run within tmux (TMUX_PANE must be set)
 	const TMUX_PANE = process.env.TMUX_PANE;
+	debugLog(`TMUX_PANE=${TMUX_PANE || "NOT SET"}`);
 	if (!TMUX_PANE) {
+		debugLog("No TMUX_PANE, returning empty handler");
 		return {};
 	}
 
@@ -36,9 +69,15 @@ export const TrackerNotifyPlugin = async ({ client, directory, $ }) => {
 	let currentSessionID = null;
 	let lastUserMessage = "";
 
-	const trackerReady = async () => {
-		const check = await $`test -x ${TRACKER_BIN}`.nothrow();
-		return check?.exitCode === 0;
+	const trackerReady = () => {
+		try {
+			fs.accessSync(TRACKER_BIN, fs.constants.X_OK);
+			debugLog(`trackerReady: true`);
+			return true;
+		} catch {
+			debugLog(`trackerReady: false`);
+			return false;
+		}
 	};
 
 	const buildTrackerArgs = () => {
@@ -51,9 +90,15 @@ export const TrackerNotifyPlugin = async ({ client, directory, $ }) => {
 
 	// On init: finish any stale task for this pane
 	const finishStaleTask = async () => {
-		if (!(await trackerReady())) return;
-		const args = buildTrackerArgs();
-		await $`${TRACKER_BIN} command ${args} -summary "stale" finish_task`.nothrow();
+		if (!(trackerReady())) return;
+		// Note: flags must come BEFORE the subcommand name for Go flag parsing
+		const cmdArgs = [
+			"command",
+			...buildTrackerArgs(),
+			"-summary", "stale",
+			"finish_task"  // subcommand must be last
+		];
+		await runTracker(cmdArgs);
 	};
 	finishStaleTask();
 
@@ -75,21 +120,39 @@ export const TrackerNotifyPlugin = async ({ client, directory, $ }) => {
 	};
 
 	const startTask = async (summary, sessionID) => {
-		if (!summary) return;
-		if (!(await trackerReady())) return;
+		debugLog(`startTask called: summary="${summary}", sessionID=${sessionID}`);
+		if (!summary) { debugLog("startTask: no summary, returning"); return; }
+		if (!(trackerReady())) { debugLog("startTask: tracker not ready"); return; }
 		taskActive = true;
 		currentSessionID = sessionID;
-		const args = buildTrackerArgs();
-		await $`${TRACKER_BIN} command ${args} -summary ${summary} start_task`.nothrow();
+		// Note: flags must come BEFORE the subcommand name for Go flag parsing
+		const cmdArgs = [
+			"command",
+			...buildTrackerArgs(),
+			"-summary", summary,
+			"start_task"  // subcommand must be last
+		];
+		debugLog(`startTask: running with cmdArgs=${JSON.stringify(cmdArgs)}`);
+		const result = await runTracker(cmdArgs);
+		debugLog(`startTask: result exitCode=${result?.exitCode}, stderr=${result?.stderr}`);
 	};
 
 	const finishTask = async (summary) => {
-		if (!taskActive) return;
-		if (!(await trackerReady())) return;
+		debugLog(`finishTask called: summary="${summary}", taskActive=${taskActive}`);
+		if (!taskActive) { debugLog("finishTask: task not active, returning"); return; }
+		if (!(trackerReady())) { debugLog("finishTask: tracker not ready"); return; }
 		taskActive = false;
 		currentSessionID = null;
-		const args = buildTrackerArgs();
-		await $`${TRACKER_BIN} command ${args} -summary ${summary || "done"} finish_task`.nothrow();
+		// Note: flags must come BEFORE the subcommand name for Go flag parsing
+		const cmdArgs = [
+			"command",
+			...buildTrackerArgs(),
+			"-summary", summary || "done",
+			"finish_task"  // subcommand must be last
+		];
+		debugLog(`finishTask: running with cmdArgs=${JSON.stringify(cmdArgs)}`);
+		const result = await runTracker(cmdArgs);
+		debugLog(`finishTask: result exitCode=${result?.exitCode}, stderr=${result?.stderr}`);
 	};
 
 	const notify = async (sessionID) => {
@@ -182,9 +245,11 @@ export const TrackerNotifyPlugin = async ({ client, directory, $ }) => {
 
 			const sessionID = event?.properties?.sessionID;
 			const status = event?.properties?.status;
+			debugLog(`session.status event: status.type=${status?.type}, taskActive=${taskActive}`);
 			if (!sessionID || !status) return;
 
 			if (status.type === "busy" && !taskActive) {
+				debugLog("Status changed to BUSY, starting task...");
 				// Use captured message first, then fall back to API
 				let text = lastUserMessage;
 				if (!text) {
@@ -193,6 +258,7 @@ export const TrackerNotifyPlugin = async ({ client, directory, $ }) => {
 				await startTask(text || "working...", sessionID);
 				lastUserMessage = "";
 			} else if (status.type === "idle" && taskActive) {
+				debugLog("Status changed to IDLE, finishing task...");
 				if (currentSessionID && sessionID !== currentSessionID) return;
 				const text = await getLastMessageText(sessionID, "assistant");
 				await finishTask(text || "done");

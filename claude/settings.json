@@ -8,13 +8,22 @@
   "bypassPermissionsModeAccepted": true,
   "includeCoAuthoredBy": false,
   "hooks": {
-    "Stop": [
+    "UserPromptSubmit": [
       {
-        "matcher": ".*",
         "hooks": [
           {
             "type": "command",
-            "command": "transcript_path=$(cat | jq -r '.transcript_path'); last_message=$(tail -1 \"$transcript_path\" | jq -r '.message.content[0].text // empty'); notification_json=$(jq -n --arg msg \"$last_message\" '{type: \"agent-turn-complete\", \"last-assistant-message\": $msg}'); \"$HOME/.config/claude/notify.py\" \"$notification_json\" >/dev/null 2>&1 &"
+            "command": "exec >> /tmp/claude-hook.log 2>&1; echo \"=== UserPromptSubmit $(date) ===\"; export TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo ''); echo \"TMUX_PANE=$TMUX_PANE\"; if [ -n \"$TMUX_PANE\" ]; then TMUX_IDS=$(tmux display-message -p -t \"$TMUX_PANE\" '#{session_id}:::#{window_id}:::#{pane_id}' 2>/dev/null); echo \"TMUX_IDS=$TMUX_IDS\"; if [ -n \"$TMUX_IDS\" ]; then SID=$(echo \"$TMUX_IDS\" | cut -d: -f1); WID=$(echo \"$TMUX_IDS\" | cut -d: -f4); PID=$(echo \"$TMUX_IDS\" | cut -d: -f7); summary=$(cat | jq -r '.prompt // \"working...\"' | head -c 100); echo \"summary=$summary\"; \"$HOME/.config/agent-tracker/bin/tracker-client\" command -session-id \"$SID\" -window-id \"$WID\" -pane \"$PID\" -summary \"$summary\" start_task 2>&1; echo \"start_task exit: $?\"; fi; fi"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "exec >> /tmp/claude-hook.log 2>&1; echo \"=== Stop $(date) ===\"; export TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo ''); echo \"TMUX_PANE=$TMUX_PANE\"; if [ -n \"$TMUX_PANE\" ]; then TMUX_IDS=$(tmux display-message -p -t \"$TMUX_PANE\" '#{session_id}:::#{window_id}:::#{pane_id}' 2>/dev/null); echo \"TMUX_IDS=$TMUX_IDS\"; if [ -n \"$TMUX_IDS\" ]; then SID=$(echo \"$TMUX_IDS\" | cut -d: -f1); WID=$(echo \"$TMUX_IDS\" | cut -d: -f4); PID=$(echo \"$TMUX_IDS\" | cut -d: -f7); transcript_path=$(cat | jq -r '.transcript_path'); last_message=$(tail -1 \"$transcript_path\" | jq -r '.message.content[0].text // empty' | head -c 200); echo \"last_message=$last_message\"; \"$HOME/.config/agent-tracker/bin/tracker-client\" command -session-id \"$SID\" -window-id \"$WID\" -pane \"$PID\" -summary \"$last_message\" finish_task 2>&1; echo \"finish_task exit: $?\"; notification_json=$(jq -n --arg msg \"$last_message\" '{type: \"agent-turn-complete\", \"last-assistant-message\": $msg}'); \"$HOME/.config/claude/notify.py\" \"$notification_json\" 2>&1; echo \"notify exit: $?\"; fi; fi"
           }
         ]
       }

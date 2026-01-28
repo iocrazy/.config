@@ -1,0 +1,209 @@
+[2026-01-28T02:55:12.207Z] Plugin loaded. HOME=/Users/heygo, TRACKER_BIN=/Users/heygo/.config/agent-tracker/bin/tracker-client
+[2026-01-28T02:55:12.207Z] TMUX_PANE=%54
+[2026-01-28T02:55:12.701Z] trackerReady: true (exitCode=0)
+[2026-01-28T03:00:37.754Z] Plugin loaded. HOME=/Users/heygo, TRACKER_BIN=/Users/heygo/.config/agent-tracker/bin/tracker-client
+[2026-01-28T03:00:37.755Z] TMUX_PANE=%54
+[2026-01-28T03:00:37.765Z] trackerReady: true (exitCode=0)
+[2026-01-28T03:00:56.359Z] session.status event: status.type=busy, taskActive=false
+[2026-01-28T03:00:56.359Z] Status changed to BUSY, starting task...
+[2026-01-28T03:00:56.360Z] startTask called: summary="hello", sessionID=ses_3fd73fc6effeZ6bqKJocCN2x0r
+[2026-01-28T03:00:56.392Z] trackerReady: true (exitCode=0)
+[2026-01-28T03:00:56.392Z] startTask: running command with args=["-pane","%54"]
+[2026-01-28T03:00:56.410Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T03:00:56.412Z] startTask: result exitCode=0, stderr=
+[2026-01-28T03:01:17.112Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T03:01:17.115Z] session.status event: status.type=idle, taskActive=true
+[2026-01-28T03:01:17.115Z] Status changed to IDLE, finishing task...
+[2026-01-28T03:01:17.325Z] finishTask called: summary="done", taskActive=true
+[2026-01-28T03:01:17.331Z] trackerReady: true (exitCode=0)
+[2026-01-28T03:01:17.331Z] finishTask: running command with args=["-pane","%54"]
+[2026-01-28T03:01:17.373Z] finishTask: result exitCode=0, stderr=
+[2026-01-28T03:08:16.661Z] session.status event: status.type=busy, taskActive=false
+[2026-01-28T03:08:16.662Z] Status changed to BUSY, starting task...
+[2026-01-28T03:08:16.662Z] startTask called: summary="hello", sessionID=ses_3fd73fc6effeZ6bqKJocCN2x0r
+[2026-01-28T03:08:16.673Z] trackerReady: true (exitCode=0)
+[2026-01-28T03:08:16.673Z] startTask: running command with args=["-pane","%54"]
+[2026-01-28T03:08:16.678Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T03:08:16.686Z] startTask: result exitCode=0, stderr=
+[2026-01-28T03:08:22.400Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T03:08:22.403Z] session.status event: status.type=idle, taskActive=true
+[2026-01-28T03:08:22.403Z] Status changed to IDLE, finishing task...
+[2026-01-28T03:08:22.618Z] finishTask called: summary="done", taskActive=true
+[2026-01-28T03:08:22.624Z] trackerReady: true (exitCode=0)
+[2026-01-28T03:08:22.624Z] finishTask: running command with args=["-pane","%54"]
+[2026-01-28T03:08:22.662Z] finishTask: result exitCode=0, stderr=
+[2026-01-28T04:14:32.144Z] session.status event: status.type=busy, taskActive=false
+[2026-01-28T04:14:32.145Z] Status changed to BUSY, starting task...
+[2026-01-28T04:14:32.145Z] startTask called: summary="which day is it today", sessionID=ses_3fd73fc6effeZ6bqKJocCN2x0r
+[2026-01-28T04:14:32.152Z] trackerReady: true (exitCode=0)
+[2026-01-28T04:14:32.152Z] startTask: running command with args=["-pane","%54"]
+[2026-01-28T04:14:32.170Z] startTask: result exitCode=0, stderr=
+[2026-01-28T04:14:32.174Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:14:36.855Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:14:36.858Z] session.status event: status.type=idle, taskActive=true
+[2026-01-28T04:14:36.858Z] Status changed to IDLE, finishing task...
+[2026-01-28T04:14:37.073Z] finishTask called: summary="done", taskActive=true
+[2026-01-28T04:14:37.080Z] trackerReady: true (exitCode=0)
+[2026-01-28T04:14:37.081Z] finishTask: running command with args=["-pane","%54"]
+[2026-01-28T04:14:37.121Z] finishTask: result exitCode=0, stderr=
+[2026-01-28T04:40:24.687Z] session.status event: status.type=busy, taskActive=false
+[2026-01-28T04:40:24.687Z] Status changed to BUSY, starting task...
+[2026-01-28T04:40:24.687Z] startTask called: summary="给我搜索下全网，最新的 claude code 的 tasks的更新内容", sessionID=ses_3fd73fc6effeZ6bqKJocCN2x0r
+[2026-01-28T04:40:24.691Z] trackerReady: true (exitCode=0)
+[2026-01-28T04:40:24.691Z] startTask: running command with args=["-pane","%54"]
+[2026-01-28T04:40:24.705Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:40:24.706Z] startTask: result exitCode=0, stderr=
+[2026-01-28T04:40:32.535Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:40:32.549Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:40:36.595Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:40:36.602Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:40:45.850Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:40:45.859Z] session.status event: status.type=idle, taskActive=true
+[2026-01-28T04:40:45.859Z] Status changed to IDLE, finishing task...
+[2026-01-28T04:40:46.080Z] finishTask called: summary="done", taskActive=true
+[2026-01-28T04:40:46.083Z] trackerReady: true (exitCode=0)
+[2026-01-28T04:40:46.083Z] finishTask: running command with args=["-pane","%54"]
+[2026-01-28T04:40:46.125Z] finishTask: result exitCode=0, stderr=
+[2026-01-28T04:44:56.691Z] session.status event: status.type=busy, taskActive=false
+[2026-01-28T04:44:56.692Z] Status changed to BUSY, starting task...
+[2026-01-28T04:44:56.692Z] startTask called: summary="在 tmux 中多终端创建 worktree 方式去并行？还是直接多终端就可以执行 claude code tasks？", sessionID=ses_3fd73fc6effeZ6bqKJocCN2x0r
+[2026-01-28T04:44:56.695Z] trackerReady: true (exitCode=0)
+[2026-01-28T04:44:56.695Z] startTask: running command with args=["-pane","%54"]
+[2026-01-28T04:44:56.712Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:44:56.713Z] startTask: result exitCode=0, stderr=
+[2026-01-28T04:45:10.054Z] session.status event: status.type=busy, taskActive=true
+[2026-01-28T04:45:10.062Z] session.status event: status.type=idle, taskActive=true
+[2026-01-28T04:45:10.063Z] Status changed to IDLE, finishing task...
+[2026-01-28T04:45:10.281Z] finishTask called: summary="done", taskActive=true
+[2026-01-28T04:45:10.284Z] trackerReady: true (exitCode=0)
+[2026-01-28T04:45:10.284Z] finishTask: running command with args=["-pane","%54"]
+[2026-01-28T04:45:10.329Z] finishTask: result exitCode=0, stderr=
+[2026-01-28T13:06:32.790+08:00] Plugin loaded. HOME=/Users/heygo, TRACKER_BIN=/Users/heygo/.config/agent-tracker/bin/tracker-client
+[2026-01-28T13:06:32.790+08:00] TMUX_PANE=%54
+[2026-01-28T13:06:32.798+08:00] trackerReady: true
+[2026-01-28T13:07:56.358+08:00] session.status event: status.type=busy, taskActive=false
+[2026-01-28T13:07:56.358+08:00] Status changed to BUSY, starting task...
+[2026-01-28T13:07:56.358+08:00] startTask called: summary="claude code 最新的更新了什么内容，请全量告知。另外是否可以配合 vibekanban 提升效率？", sessionID=ses_3fcffb6c7ffel6fUYj1U6QfhHk
+[2026-01-28T13:07:56.358+08:00] trackerReady: true
+[2026-01-28T13:07:56.358+08:00] startTask: running with cmdArgs=["command","-pane","%54","-summary","claude code 最新的更新了什么内容，请全量告知。另外是否可以配合 vibekanban 提升效率？","start_task"]
+[2026-01-28T13:07:56.405+08:00] startTask: result exitCode=0, stderr=
+[2026-01-28T13:07:56.443+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:08:07.553+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:08:07.561+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:08:20.532+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:08:20.538+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:08:43.957+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:08:43.962+08:00] session.status event: status.type=idle, taskActive=true
+[2026-01-28T13:08:43.962+08:00] Status changed to IDLE, finishing task...
+[2026-01-28T13:08:44.179+08:00] finishTask called: summary="done", taskActive=true
+[2026-01-28T13:08:44.179+08:00] trackerReady: true
+[2026-01-28T13:08:44.180+08:00] finishTask: running with cmdArgs=["command","-pane","%54","-summary","done","finish_task"]
+[2026-01-28T13:08:44.238+08:00] finishTask: result exitCode=0, stderr=
+[2026-01-28T13:13:44.224+08:00] session.status event: status.type=busy, taskActive=false
+[2026-01-28T13:13:44.224+08:00] Status changed to BUSY, starting task...
+[2026-01-28T13:13:44.224+08:00] startTask called: summary="是否还有更多内容？", sessionID=ses_3fcffb6c7ffel6fUYj1U6QfhHk
+[2026-01-28T13:13:44.225+08:00] trackerReady: true
+[2026-01-28T13:13:44.225+08:00] startTask: running with cmdArgs=["command","-pane","%54","-summary","是否还有更多内容？","start_task"]
+[2026-01-28T13:13:44.239+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:13:44.240+08:00] startTask: result exitCode=0, stderr=
+[2026-01-28T13:13:54.265+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:13:54.273+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:14:12.967+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:14:12.977+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:14:40.857+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:14:40.868+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:14:52.071+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:14:52.083+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:15:03.579+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:15:03.587+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:16:20.180+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T13:16:20.192+08:00] session.status event: status.type=idle, taskActive=true
+[2026-01-28T13:16:20.193+08:00] Status changed to IDLE, finishing task...
+[2026-01-28T13:16:20.412+08:00] finishTask called: summary="done", taskActive=true
+[2026-01-28T13:16:20.412+08:00] trackerReady: true
+[2026-01-28T13:16:20.412+08:00] finishTask: running with cmdArgs=["command","-pane","%54","-summary","done","finish_task"]
+[2026-01-28T13:16:20.477+08:00] finishTask: result exitCode=0, stderr=
+[2026-01-28T15:22:47.412+08:00] session.status event: status.type=busy, taskActive=false
+[2026-01-28T15:22:47.413+08:00] Status changed to BUSY, starting task...
+[2026-01-28T15:22:47.413+08:00] startTask called: summary="帮我看下明后天的天气情况！！！！详细", sessionID=ses_3fcffb6c7ffel6fUYj1U6QfhHk
+[2026-01-28T15:22:47.413+08:00] trackerReady: true
+[2026-01-28T15:22:47.413+08:00] startTask: running with cmdArgs=["command","-pane","%54","-summary","帮我看下明后天的天气情况！！！！详细","start_task"]
+[2026-01-28T15:22:47.426+08:00] startTask: result exitCode=0, stderr=
+[2026-01-28T15:22:47.458+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:22:51.658+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:22:53.663+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:22:57.232+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:23:01.234+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:23:14.928+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:23:14.941+08:00] session.status event: status.type=idle, taskActive=true
+[2026-01-28T15:23:14.941+08:00] Status changed to IDLE, finishing task...
+[2026-01-28T15:23:15.161+08:00] finishTask called: summary="done", taskActive=true
+[2026-01-28T15:23:15.161+08:00] trackerReady: true
+[2026-01-28T15:23:15.161+08:00] finishTask: running with cmdArgs=["command","-pane","%54","-summary","done","finish_task"]
+[2026-01-28T15:23:15.201+08:00] finishTask: result exitCode=0, stderr=
+[2026-01-28T15:30:09.111+08:00] session.status event: status.type=busy, taskActive=false
+[2026-01-28T15:30:09.112+08:00] Status changed to BUSY, starting task...
+[2026-01-28T15:30:09.112+08:00] startTask called: summary="还不够详细我要确信", sessionID=ses_3fcffb6c7ffel6fUYj1U6QfhHk
+[2026-01-28T15:30:09.112+08:00] trackerReady: true
+[2026-01-28T15:30:09.112+08:00] startTask: running with cmdArgs=["command","-pane","%54","-summary","还不够详细我要确信","start_task"]
+[2026-01-28T15:30:09.165+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:30:09.166+08:00] startTask: result exitCode=0, stderr=
+[2026-01-28T15:30:13.599+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:30:15.606+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:30:39.362+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:30:39.383+08:00] session.status event: status.type=idle, taskActive=true
+[2026-01-28T15:30:39.383+08:00] Status changed to IDLE, finishing task...
+[2026-01-28T15:30:39.613+08:00] finishTask called: summary="done", taskActive=true
+[2026-01-28T15:30:39.613+08:00] trackerReady: true
+[2026-01-28T15:30:39.613+08:00] finishTask: running with cmdArgs=["command","-pane","%54","-summary","done","finish_task"]
+[2026-01-28T15:30:39.675+08:00] finishTask: result exitCode=0, stderr=
+[2026-01-28T15:32:52.559+08:00] session.status event: status.type=busy, taskActive=false
+[2026-01-28T15:32:52.560+08:00] Status changed to BUSY, starting task...
+[2026-01-28T15:32:52.560+08:00] startTask called: summary="我后天的天气呢？详细我在江苏南通", sessionID=ses_3fcffb6c7ffel6fUYj1U6QfhHk
+[2026-01-28T15:32:52.560+08:00] trackerReady: true
+[2026-01-28T15:32:52.560+08:00] startTask: running with cmdArgs=["command","-pane","%54","-summary","我后天的天气呢？详细我在江苏南通","start_task"]
+[2026-01-28T15:32:52.571+08:00] startTask: result exitCode=0, stderr=
+[2026-01-28T15:32:52.586+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:33:15.693+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:33:15.715+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:33:20.236+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:33:22.243+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:33:26.468+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:33:30.472+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:33:51.958+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:33:51.995+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:33:59.134+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:34:01.139+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:34:05.121+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:34:09.129+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:34:32.365+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:34:32.393+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:34:38.000+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:34:40.006+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:34:43.692+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:34:47.699+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:34:51.988+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T15:34:59.999+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:36:43.698+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T15:36:43.725+08:00] session.status event: status.type=idle, taskActive=true
+[2026-01-28T15:36:43.725+08:00] Status changed to IDLE, finishing task...
+[2026-01-28T15:36:43.956+08:00] finishTask called: summary="done", taskActive=true
+[2026-01-28T15:36:43.956+08:00] trackerReady: true
+[2026-01-28T15:36:43.956+08:00] finishTask: running with cmdArgs=["command","-pane","%54","-summary","done","finish_task"]
+[2026-01-28T15:36:44.001+08:00] finishTask: result exitCode=0, stderr=
+[2026-01-28T16:08:12.901+08:00] session.status event: status.type=busy, taskActive=false
+[2026-01-28T16:08:12.901+08:00] Status changed to BUSY, starting task...
+[2026-01-28T16:08:12.901+08:00] startTask called: summary="后天江苏日出是什么时间？江苏南通？", sessionID=ses_3fcffb6c7ffel6fUYj1U6QfhHk
+[2026-01-28T16:08:12.901+08:00] trackerReady: true
+[2026-01-28T16:08:12.901+08:00] startTask: running with cmdArgs=["command","-pane","%54","-summary","后天江苏日出是什么时间？江苏南通？","start_task"]
+[2026-01-28T16:08:12.941+08:00] startTask: result exitCode=0, stderr=
+[2026-01-28T16:08:12.947+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T16:08:17.809+08:00] session.status event: status.type=retry, taskActive=true
+[2026-01-28T16:08:19.814+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T16:08:59.469+08:00] session.status event: status.type=busy, taskActive=true
+[2026-01-28T16:08:59.495+08:00] session.status event: status.type=idle, taskActive=true
+[2026-01-28T16:08:59.496+08:00] Status changed to IDLE, finishing task...
+[2026-01-28T16:08:59.723+08:00] finishTask called: summary="done", taskActive=true
+[2026-01-28T16:08:59.723+08:00] trackerReady: true
+[2026-01-28T16:08:59.723+08:00] finishTask: running with cmdArgs=["command","-pane","%54","-summary","done","finish_task"]
+[2026-01-28T16:08:59.760+08:00] finishTask: result exitCode=0, stderr=
