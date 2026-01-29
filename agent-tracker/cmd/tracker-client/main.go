@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	statusInProgress = "in_progress"
-	statusCompleted  = "completed"
+	statusInProgress    = "in_progress"
+	statusAwaitingInput = "awaiting_input"
+	statusCompleted     = "completed"
 )
 
 var spinnerFrames = []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'}
@@ -142,7 +143,7 @@ func runCommand(args []string) error {
 	}
 
 	switch env.Command {
-	case "start_task", "finish_task", "acknowledge", "note_add", "note_archive_pane", "note_attach":
+	case "start_task", "finish_task", "pause_task", "acknowledge", "note_add", "note_archive_pane", "note_attach":
 		ctx, err := resolveContext(env.Session, env.SessionID, env.Window, env.WindowID, env.Pane)
 		if err != nil {
 			return err
@@ -1026,6 +1027,9 @@ func runUI(args []string) error {
 				case statusInProgress:
 					baseStyle = baseStyle.Foreground(tcell.ColorLightGoldenrodYellow).Bold(true)
 					indicator = "▶ " + indicator
+				case statusAwaitingInput:
+					baseStyle = baseStyle.Foreground(tcell.ColorOrange).Bold(true)
+					indicator = "▌ " + indicator
 				case statusCompleted:
 					if t.Acknowledged {
 						baseStyle = baseStyle.Foreground(tcell.ColorLightGreen)
@@ -2102,12 +2106,14 @@ func sortTasks(tasks []ipc.Task) {
 
 func taskStatusRank(status string) int {
 	switch status {
+	case statusAwaitingInput:
+		return 0 // Show awaiting input first
 	case statusInProgress:
-		return 0
-	case statusCompleted:
 		return 1
-	default:
+	case statusCompleted:
 		return 2
+	default:
+		return 3
 	}
 }
 
@@ -2128,6 +2134,8 @@ func taskIndicator(t ipc.Task, now time.Time) string {
 	case statusInProgress:
 		idx := int(now.UnixNano()/int64(spinnerInterval)) % len(spinnerFrames)
 		return string(spinnerFrames[idx])
+	case statusAwaitingInput:
+		return "🚧"
 	case statusCompleted:
 		if t.Acknowledged {
 			return "✓"

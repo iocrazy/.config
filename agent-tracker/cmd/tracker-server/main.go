@@ -33,8 +33,9 @@ const (
 )
 
 const (
-	statusInProgress = "in_progress"
-	statusCompleted  = "completed"
+	statusInProgress    = "in_progress"
+	statusAwaitingInput = "awaiting_input"
+	statusCompleted     = "completed"
 )
 
 const (
@@ -294,6 +295,18 @@ func (s *server) handleCommand(env ipc.Envelope) error {
 		s.broadcastStateAsync()
 		s.statusRefreshAsync()
 		return nil
+	case "pause_task":
+		target, err := requireSessionWindow(env)
+		if err != nil {
+			return err
+		}
+		summary := firstNonEmpty(env.Summary, env.Message)
+		if err := s.pauseTask(target, summary); err != nil {
+			return err
+		}
+		s.broadcastStateAsync()
+		s.statusRefreshAsync()
+		return nil
 	case "acknowledge":
 		target, err := requireSessionWindow(env)
 		if err != nil {
@@ -466,6 +479,31 @@ func (s *server) finishTask(target tmuxTarget, note string) error {
 	}
 	// Auto-acknowledge if user is currently in this pane
 	t.Acknowledged = isActivePane(target.PaneID)
+	return nil
+}
+
+func (s *server) pauseTask(target tmuxTarget, summary string) error {
+	if target.SessionID == "" || target.WindowID == "" {
+		return nil // silently ignore - pane likely died
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := taskKey(target.SessionID, target.WindowID, target.PaneID)
+	t, ok := s.tasks[key]
+	if !ok {
+		// No existing task, create one in awaiting_input state
+		t = &taskRecord{
+			SessionID: target.SessionID,
+			WindowID:  target.WindowID,
+			Pane:      target.PaneID,
+			StartedAt: time.Now(),
+		}
+		s.tasks[key] = t
+	}
+	t.Status = statusAwaitingInput
+	if summary != "" {
+		t.Summary = summary
+	}
 	return nil
 }
 
@@ -1677,11 +1715,14 @@ func firstNonEmpty(values ...string) string {
 
 func stateSummary(tasks []ipc.Task, notes []ipc.Note, archived []ipc.Note) string {
 	inProgress := 0
+	awaitingInput := 0
 	waiting := 0
 	for _, t := range tasks {
 		switch t.Status {
 		case statusInProgress:
 			inProgress++
+		case statusAwaitingInput:
+			awaitingInput++
 		case statusCompleted:
 			if !t.Acknowledged {
 				waiting++
@@ -1693,6 +1734,9 @@ func stateSummary(tasks []ipc.Task, notes []ipc.Note, archived []ipc.Note) strin
 	notePart := fmt.Sprintf("Notes %d", noteCount)
 	if archivedCount > 0 {
 		notePart = fmt.Sprintf("%s (+%d archived)", notePart, archivedCount)
+	}
+	if awaitingInput > 0 {
+		return fmt.Sprintf("Active %d · Paused %d · Waiting %d · %s · %s", inProgress, awaitingInput, waiting, notePart, time.Now().Format(time.Kitchen))
 	}
 	return fmt.Sprintf("Active %d · Waiting %d · %s · %s", inProgress, waiting, notePart, time.Now().Format(time.Kitchen))
 }
