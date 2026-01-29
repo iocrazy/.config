@@ -498,6 +498,17 @@ setw -g window-status-current-format '#[fg=#{@theme_color},bold] #W#(~/.config/t
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "export TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo ''); if [ -n \"$TMUX_PANE\" ]; then TMUX_IDS=$(tmux display-message -p -t \"$TMUX_PANE\" '#{session_id}:::#{window_id}:::#{pane_id}' 2>/dev/null); if [ -n \"$TMUX_IDS\" ]; then SID=$(echo \"$TMUX_IDS\" | cut -d: -f1); WID=$(echo \"$TMUX_IDS\" | cut -d: -f4); PID=$(echo \"$TMUX_IDS\" | cut -d: -f7); tool_name=$(cat | jq -r '.tool // .tool_name // \"确认\"'); \"$HOME/.config/agent-tracker/bin/tracker-client\" command -session-id \"$SID\" -window-id \"$WID\" -pane \"$PID\" -summary \"$tool_name\" pause_task 2>/dev/null; fi; fi"
+          }
+        ]
+      }
     ]
   }
 }
@@ -505,10 +516,11 @@ setw -g window-status-current-format '#[fg=#{@theme_color},bold] #W#(~/.config/t
 
 **Hook 说明**：
 
-| Hook | 触发时机 | 用途 |
-|------|---------|------|
-| **UserPromptSubmit** | 用户发送消息时 | 调用 `start_task` 开始任务跟踪 |
-| **Stop** | Claude 完成响应时 | 调用 `finish_task` 结束任务并发送通知 |
+| Hook | 触发时机 | 用途 | 状态图标 |
+|------|---------|------|---------|
+| **UserPromptSubmit** | 用户发送消息时 | 调用 `start_task` 开始任务跟踪 | ⏳ |
+| **Stop** | Claude 完成响应时 | 调用 `finish_task` 结束任务并发送通知 | ✓ / 🔔 |
+| **Notification** (`permission_prompt`) | Claude 请求权限确认时 | 调用 `pause_task` 标记等待状态 | 🚧 |
 
 ### Claude Code 工作流程
 
@@ -521,19 +533,46 @@ UserPromptSubmit Hook 触发
        ├──► tracker-client start_task -summary "hello"
        │           │
        │           ▼
-       │    tracker-server 记录: [ACTIVE ▶] hello
+       │    tracker-server 记录: [ACTIVE ⏳] hello
        │
 Claude Code 处理中...
        │
-       ▼
-Stop Hook 触发
-       │
+       ├─────────────────────────────────────┐
+       │                                     │
+       ▼                                     ▼
+需要权限确认？                            直接完成
+       │                                     │
+       ▼                                     │
+Notification Hook 触发                       │
+(matcher: permission_prompt)                 │
+       │                                     │
+       ├──► tracker-client pause_task        │
+       │           │                         │
+       │           ▼                         │
+       │    状态变为: [WAITING 🚧]            │
+       │                                     │
+       ▼                                     │
+用户确认后                                   │
+       │                                     │
+       ▼                                     │
+UserPromptSubmit Hook 触发                   │
+       │                                     │
+       ├──► tracker-client start_task        │
+       │           │                         │
+       │           ▼                         │
+       │    状态恢复: [ACTIVE ⏳]             │
+       │                                     │
+       └─────────────► 继续处理 ◄────────────┘
+                       │
+                       ▼
+                Stop Hook 触发
+                       │
        ├──► tracker-client finish_task -summary "回复内容"
        │           │
        │           ▼
        │    tracker-server 记录:
        │      - 如果用户在当前 pane → [DONE ✓]
-       │      - 如果用户在其他 pane → [WAITING 🚩]
+       │      - 如果用户在其他 pane → [WAITING 🔔]
        │
        └──► notify.py (发送系统通知)
                    │

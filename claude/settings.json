@@ -37,6 +37,15 @@
             "command": "exec >> /tmp/claude-hook.log 2>&1; echo \"=== Notification:permission_prompt $(date) ===\"; INPUT=$(cat); echo \"INPUT=$INPUT\"; export TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo ''); echo \"TMUX_PANE=$TMUX_PANE\"; if [ -n \"$TMUX_PANE\" ]; then TMUX_IDS=$(tmux display-message -p -t \"$TMUX_PANE\" '#{session_id}:::#{window_id}:::#{pane_id}' 2>/dev/null); echo \"TMUX_IDS=$TMUX_IDS\"; if [ -n \"$TMUX_IDS\" ]; then SID=$(echo \"$TMUX_IDS\" | cut -d: -f1); WID=$(echo \"$TMUX_IDS\" | cut -d: -f4); PID=$(echo \"$TMUX_IDS\" | cut -d: -f7); tool_name=$(echo \"$INPUT\" | jq -r '.tool // .tool_name // \"确认\"'); echo \"tool_name=$tool_name\"; \"$HOME/.config/agent-tracker/bin/tracker-client\" command -session-id \"$SID\" -window-id \"$WID\" -pane \"$PID\" -summary \"$tool_name\" pause_task 2>&1; echo \"pause_task exit: $?\"; fi; fi"
           }
         ]
+      },
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "exec >> /tmp/claude-hook.log 2>&1; echo \"=== Notification:idle_prompt $(date) ===\"; export TMUX_PANE=$(tmux display-message -p '#{pane_id}' 2>/dev/null || echo ''); echo \"TMUX_PANE=$TMUX_PANE\"; if [ -n \"$TMUX_PANE\" ]; then TMUX_IDS=$(tmux display-message -p -t \"$TMUX_PANE\" '#{session_id}:::#{window_id}:::#{pane_id}' 2>/dev/null); echo \"TMUX_IDS=$TMUX_IDS\"; if [ -n \"$TMUX_IDS\" ]; then SID=$(echo \"$TMUX_IDS\" | cut -d: -f1); WID=$(echo \"$TMUX_IDS\" | cut -d: -f4); PID=$(echo \"$TMUX_IDS\" | cut -d: -f7); \"$HOME/.config/agent-tracker/bin/tracker-client\" command -session-id \"$SID\" -window-id \"$WID\" -pane \"$PID\" -summary \"空闲\" finish_task 2>&1; echo \"finish_task exit: $?\"; fi; fi"
+          }
+        ]
       }
     ]
   },

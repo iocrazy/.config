@@ -1295,6 +1295,11 @@ func (s *server) buildStateEnvelope() *ipc.Envelope {
 			staleKeys = append(staleKeys, taskKeys[i])
 			continue
 		}
+		// Auto-timeout: awaiting_input tasks older than 10 minutes (likely cancelled)
+		if t.Status == statusAwaitingInput && duration > 10*time.Minute {
+			staleKeys = append(staleKeys, taskKeys[i])
+			continue
+		}
 		var names [2]string
 		if cached, ok := nameCache[t.WindowID]; ok {
 			if cached[0] == "" && cached[1] == "" {
