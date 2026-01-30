@@ -41,6 +41,7 @@ const (
 	viewNotes
 	viewArchive
 	viewEdit
+	viewHistory
 )
 
 type noteScope string
@@ -105,6 +106,8 @@ func main() {
 func runCommand(args []string) error {
 	fs := flag.NewFlagSet("tracker-client command", flag.ExitOnError)
 	var client, session, sessionID, window, windowID, pane, summary, scope, noteID string
+	var projectPath, prompt, reply, transcriptPath, claudeSessionID, search string
+	var limit, offset int
 	fs.StringVar(&client, "client", "", "tmux client tty")
 	fs.StringVar(&session, "session", "", "tmux session name")
 	fs.StringVar(&sessionID, "session-id", "", "tmux session id")
@@ -114,6 +117,15 @@ func runCommand(args []string) error {
 	fs.StringVar(&summary, "summary", "", "summary or note payload")
 	fs.StringVar(&scope, "scope", "", "note scope")
 	fs.StringVar(&noteID, "note-id", "", "note identifier")
+	// History fields
+	fs.StringVar(&projectPath, "project", "", "project path for history")
+	fs.StringVar(&prompt, "prompt", "", "user prompt for history")
+	fs.StringVar(&reply, "reply", "", "assistant reply for history")
+	fs.StringVar(&transcriptPath, "transcript", "", "transcript path for history")
+	fs.StringVar(&claudeSessionID, "claude-session", "", "claude session id for history")
+	fs.StringVar(&search, "search", "", "search term for history query")
+	fs.IntVar(&limit, "limit", 50, "limit for history query")
+	fs.IntVar(&offset, "offset", 0, "offset for history query")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -137,6 +149,15 @@ func runCommand(args []string) error {
 		Scope:     strings.TrimSpace(scope),
 		NoteID:    strings.TrimSpace(noteID),
 		Summary:   strings.TrimSpace(summary),
+		// History fields
+		ProjectPath:     strings.TrimSpace(projectPath),
+		Prompt:          strings.TrimSpace(prompt),
+		Reply:           strings.TrimSpace(reply),
+		TranscriptPath:  strings.TrimSpace(transcriptPath),
+		ClaudeSessionID: strings.TrimSpace(claudeSessionID),
+		Search:          strings.TrimSpace(search),
+		Limit:           limit,
+		Offset:          offset,
 	}
 	if env.Summary != "" {
 		env.Message = env.Summary
@@ -390,11 +411,12 @@ func runUI(args []string) error {
 	}
 
 	type state struct {
-		message  string
-		tasks    []ipc.Task
-		notes    []ipc.Note
-		archived []ipc.Note
-		goals    []ipc.Goal
+		message       string
+		tasks         []ipc.Task
+		notes         []ipc.Note
+		archived      []ipc.Note
+		goals         []ipc.Goal
+		conversations []ipc.Conversation
 	}
 	st := state{message: "Connecting to tracker…"}
 
@@ -467,6 +489,7 @@ func runUI(args []string) error {
 	noteList := listState{}
 	archiveList := listState{}
 	goalList := listState{}
+	historyList := listState{}
 	keepTasksVisible := make(map[string]bool)
 	keepNotesVisible := make(map[string]bool)
 	prompt := promptState{}
@@ -981,6 +1004,8 @@ func runUI(args []string) error {
 			title = "Archive"
 		} else if mode == viewEdit {
 			title = "Edit Note"
+		} else if mode == viewHistory {
+			title = "History"
 		}
 		subtitle := st.message
 		if mode == viewNotes {
@@ -1669,6 +1694,139 @@ func runUI(args []string) error {
 					screen.ShowCursor(cx, 5)
 				}
 			}
+		case viewHistory:
+			conversations := st.conversations
+			clampList(&historyList, len(conversations), 3, visibleRows)
+			row := 3
+
+			if len(conversations) == 0 {
+				writeStyledLine(screen, 0, row, truncate("No conversation history for this project.", width), infoStyle)
+			} else {
+				// Group conversations by time
+				now := time.Now()
+				today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+				yesterday := today.AddDate(0, 0, -1)
+				thisWeek := today.AddDate(0, 0, -7)
+
+				lastGroup := ""
+				for idx := historyList.offset; idx < len(conversations); idx++ {
+					if row >= height {
+						break
+					}
+					c := conversations[idx]
+
+					// Parse time and determine group
+					var cTime time.Time
+					if t, err := time.Parse(time.RFC3339, c.StartedAt); err == nil {
+						cTime = t
+					} else if t, err := time.Parse("2006-01-02 15:04:05", c.StartedAt); err == nil {
+						cTime = t
+					}
+
+					group := "Earlier"
+					if !cTime.IsZero() {
+						if cTime.After(today) || cTime.Equal(today) {
+							group = "Today"
+						} else if cTime.After(yesterday) || cTime.Equal(yesterday) {
+							group = "Yesterday"
+						} else if cTime.After(thisWeek) {
+							group = "This Week"
+						}
+					}
+
+					// Draw group header if changed
+					if group != lastGroup {
+						if row < height {
+							groupStyle := tcell.StyleDefault.Foreground(tcell.ColorLightCyan).Bold(true)
+							writeStyledLine(screen, 0, row, truncate(group, width), groupStyle)
+							row++
+							lastGroup = group
+						}
+					}
+
+					if row >= height {
+						break
+					}
+
+					// Style
+					baseStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite)
+					metaStyle := tcell.StyleDefault.Foreground(tcell.ColorLightSlateGray)
+					timeStyle := tcell.StyleDefault.Foreground(tcell.ColorDarkCyan)
+
+					if idx == historyList.selected {
+						baseStyle = baseStyle.Background(tcell.ColorDarkSlateGray)
+						metaStyle = metaStyle.Background(tcell.ColorDarkSlateGray)
+						timeStyle = timeStyle.Background(tcell.ColorDarkSlateGray)
+					}
+
+					// Format time
+					timeStr := ""
+					if !cTime.IsZero() {
+						timeStr = cTime.Format("15:04")
+					}
+
+					// Prompt summary (truncate to first line)
+					promptSummary := c.UserPrompt
+					if idx := strings.Index(promptSummary, "\n"); idx > 0 {
+						promptSummary = promptSummary[:idx]
+					}
+					if len(promptSummary) > 60 {
+						promptSummary = promptSummary[:57] + "..."
+					}
+					if promptSummary == "" {
+						promptSummary = "(no prompt)"
+					}
+
+					// Line 1: Time + Prompt
+					prefix := "├─ "
+					availWidth := width - len(prefix) - len(timeStr) - 2
+					if availWidth < 10 {
+						availWidth = 10
+					}
+
+					writeStyledSegments(screen, row,
+						struct {
+							text  string
+							style tcell.Style
+						}{text: prefix, style: metaStyle},
+						struct {
+							text  string
+							style tcell.Style
+						}{text: timeStr + "  ", style: timeStyle},
+						struct {
+							text  string
+							style tcell.Style
+						}{text: truncate(promptSummary, availWidth), style: baseStyle},
+					)
+					row++
+
+					// Line 2: Reply summary (if exists)
+					if c.AssistantReply != "" && row < height {
+						replySummary := c.AssistantReply
+						if idx := strings.Index(replySummary, "\n"); idx > 0 {
+							replySummary = replySummary[:idx]
+						}
+						if len(replySummary) > 50 {
+							replySummary = replySummary[:47] + "..."
+						}
+						replyLine := "│         → " + replySummary
+						writeStyledLine(screen, 0, row, truncate(replyLine, width), metaStyle)
+						row++
+					}
+
+					// Spacer
+					if row < height {
+						row++
+					}
+				}
+			}
+
+			// Footer hint
+			if height > 3 {
+				hintStyle := tcell.StyleDefault.Foreground(tcell.ColorDarkGray)
+				hint := "[j/k] Navigate  [r] Resume  [Shift+H] Back"
+				writeStyledLine(screen, 0, height-1, truncate(hint, width), hintStyle)
+			}
 		}
 
 		if prompt.active && mode != viewEdit {
@@ -1843,10 +2001,20 @@ func runUI(args []string) error {
 					}
 					draw(time.Now())
 				case 'h':
-					// Vim style: h = scope left (narrow)
-					if mode == viewNotes {
-						cycleScope(false, false)
+					if shift {
+						// Shift+H: switch to History view
+						if mode == viewHistory {
+							mode = viewNotes
+						} else {
+							mode = viewHistory
+						}
 						draw(time.Now())
+					} else {
+						// Vim style: h = scope left (narrow)
+						if mode == viewNotes {
+							cycleScope(false, false)
+							draw(time.Now())
+						}
 					}
 				case 'l':
 					// Vim style: l = scope right (widen)
@@ -1885,6 +2053,10 @@ func runUI(args []string) error {
 						if archiveList.selected > 0 {
 							archiveList.selected--
 						}
+					case viewHistory:
+						if historyList.selected > 0 {
+							historyList.selected--
+						}
 					}
 					draw(time.Now())
 				case 'j':
@@ -1911,6 +2083,10 @@ func runUI(args []string) error {
 						notes := getArchivedNotes()
 						if archiveList.selected < len(notes)-1 {
 							archiveList.selected++
+						}
+					case viewHistory:
+						if historyList.selected < len(st.conversations)-1 {
+							historyList.selected++
 						}
 					}
 					draw(time.Now())
@@ -1979,6 +2155,31 @@ func runUI(args []string) error {
 								Pane:      notes[noteList.selected].Pane,
 							}); err != nil {
 								st.message = err.Error()
+							}
+						}
+						draw(time.Now())
+					}
+				case 'r':
+					// r = resume conversation (History view only)
+					if mode == viewHistory {
+						conversations := st.conversations
+						if len(conversations) > 0 && historyList.selected < len(conversations) {
+							c := conversations[historyList.selected]
+							if c.SessionID != "" {
+								// Run claude --resume in current pane
+								cmd := exec.Command("claude", "--resume", c.SessionID)
+								cmd.Stdin = os.Stdin
+								cmd.Stdout = os.Stdout
+								cmd.Stderr = os.Stderr
+								// Hide tracker popup before running
+								_ = sendCommand("hide")
+								screen.Fini()
+								if err := cmd.Run(); err != nil {
+									log.Printf("resume error: %v", err)
+								}
+								return nil
+							} else {
+								st.message = "No session ID for this conversation"
 							}
 						}
 						draw(time.Now())

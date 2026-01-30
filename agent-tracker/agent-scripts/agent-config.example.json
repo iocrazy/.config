@@ -1,0 +1,17 @@
+{
+  "frontend": {
+    "dir": "frontend",
+    "port": 3000,
+    "cmd": "npm run dev -- --port $PORT"
+  },
+  "backend": {
+    "dir": "backend",
+    "port": 8000,
+    "cmd": "python -m uvicorn main:app --reload --port $PORT"
+  },
+  "browser": {
+    "type": "chrome",
+    "url": "http://localhost:$FRONTEND_PORT",
+    "auto_open": true
+  }
+}

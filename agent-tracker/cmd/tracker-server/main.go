@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/david/agent-tracker/internal/history"
 	"github.com/david/agent-tracker/internal/ipc"
 )
 
@@ -133,10 +134,11 @@ type server struct {
 	goalsPath   string
 	noteCounter uint64
 	goalCounter uint64
+	historyDB   *history.DB
 }
 
 func newServer() *server {
-	return &server{
+	s := &server{
 		socketPath:  socketPath(),
 		pos:         posTopRight,
 		width:       84,
@@ -148,6 +150,13 @@ func newServer() *server {
 		notesPath:   notesStorePath(),
 		goalsPath:   goalsStorePath(),
 	}
+	// Initialize history database
+	if db, err := history.Open(history.DefaultDBPath()); err != nil {
+		log.Printf("warning: history database unavailable: %v", err)
+	} else {
+		s.historyDB = db
+	}
+	return s
 }
 
 func main() {
@@ -432,6 +441,12 @@ func (s *server) handleCommand(env ipc.Envelope) error {
 			return err
 		}
 		return nil
+	case "history_start":
+		return s.historyStart(env)
+	case "history_end":
+		return s.historyEnd(env)
+	case "history_query":
+		return s.historyQuery(env)
 	default:
 		return fmt.Errorf("unknown command %q", env.Command)
 	}
@@ -1740,4 +1755,69 @@ func stateSummary(tasks []ipc.Task, notes []ipc.Note, archived []ipc.Note) strin
 		return fmt.Sprintf("Active %d · Paused %d · Waiting %d · %s · %s", inProgress, awaitingInput, waiting, notePart, time.Now().Format(time.Kitchen))
 	}
 	return fmt.Sprintf("Active %d · Waiting %d · %s · %s", inProgress, waiting, notePart, time.Now().Format(time.Kitchen))
+}
+
+// History command handlers
+
+func (s *server) historyStart(env ipc.Envelope) error {
+	if s.historyDB == nil {
+		return fmt.Errorf("history database not available")
+	}
+	projectPath := strings.TrimSpace(env.ProjectPath)
+	if projectPath == "" {
+		return fmt.Errorf("project_path required for history_start")
+	}
+	prompt := strings.TrimSpace(env.Prompt)
+	sessionID := strings.TrimSpace(env.ClaudeSessionID)
+
+	_, err := s.historyDB.CreateConversation(projectPath, sessionID, prompt)
+	if err != nil {
+		return fmt.Errorf("history_start: %w", err)
+	}
+	return nil
+}
+
+func (s *server) historyEnd(env ipc.Envelope) error {
+	if s.historyDB == nil {
+		return fmt.Errorf("history database not available")
+	}
+	projectPath := strings.TrimSpace(env.ProjectPath)
+	if projectPath == "" {
+		return fmt.Errorf("project_path required for history_end")
+	}
+	reply := strings.TrimSpace(env.Reply)
+	transcriptPath := strings.TrimSpace(env.TranscriptPath)
+
+	err := s.historyDB.UpdateConversation(projectPath, reply, transcriptPath)
+	if err != nil {
+		return fmt.Errorf("history_end: %w", err)
+	}
+	return nil
+}
+
+func (s *server) historyQuery(env ipc.Envelope) error {
+	if s.historyDB == nil {
+		return fmt.Errorf("history database not available")
+	}
+	projectPath := strings.TrimSpace(env.ProjectPath)
+	if projectPath == "" {
+		return fmt.Errorf("project_path required for history_query")
+	}
+
+	opts := history.QueryOptions{
+		ProjectPath: projectPath,
+		Limit:       env.Limit,
+		Offset:      env.Offset,
+		Search:      strings.TrimSpace(env.Search),
+	}
+
+	conversations, err := s.historyDB.QueryConversations(opts)
+	if err != nil {
+		return fmt.Errorf("history_query: %w", err)
+	}
+
+	// Convert to IPC format - this will be sent back in the response
+	// For now, just log the count (actual response handling needs more work)
+	log.Printf("history_query: found %d conversations for %s", len(conversations), projectPath)
+	return nil
 }

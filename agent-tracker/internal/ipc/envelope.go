@@ -20,6 +20,29 @@ type Envelope struct {
 	Notes     []Note `json:"notes,omitempty"`
 	Archived  []Note `json:"archived,omitempty"`
 	Goals     []Goal `json:"goals,omitempty"`
+
+	// History fields
+	ProjectPath     string         `json:"project_path,omitempty"`
+	Prompt          string         `json:"prompt,omitempty"`
+	Reply           string         `json:"reply,omitempty"`
+	TranscriptPath  string         `json:"transcript_path,omitempty"`
+	ClaudeSessionID string         `json:"claude_session_id,omitempty"`
+	Limit           int            `json:"limit,omitempty"`
+	Offset          int            `json:"offset,omitempty"`
+	Search          string         `json:"search,omitempty"`
+	Conversations   []Conversation `json:"conversations,omitempty"`
+}
+
+// Conversation represents a Claude conversation history record
+type Conversation struct {
+	ID             int64  `json:"id"`
+	ProjectPath    string `json:"project_path"`
+	SessionID      string `json:"session_id,omitempty"`
+	StartedAt      string `json:"started_at"`
+	EndedAt        string `json:"ended_at,omitempty"`
+	UserPrompt     string `json:"user_prompt,omitempty"`
+	AssistantReply string `json:"assistant_reply,omitempty"`
+	TranscriptPath string `json:"transcript_path,omitempty"`
 }
 
 type Task struct {
