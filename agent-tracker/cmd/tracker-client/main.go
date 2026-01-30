@@ -1590,6 +1590,12 @@ func runUI(args []string) error {
 			} else {
 				renderTasks(list, &taskList)
 			}
+			// Footer hint
+			if height > 3 {
+				hintStyle := tcell.StyleDefault.Foreground(tcell.ColorDarkGray)
+				hint := "[j/k] Navigate  [c] Complete  [f] Focus  [D] Delete  [t] Notes"
+				writeStyledLine(screen, 0, height-1, truncate(hint, width), hintStyle)
+			}
 		case viewNotes:
 			goals := getVisibleGoals()
 			notes := getVisibleNotes()
@@ -1672,12 +1678,24 @@ func runUI(args []string) error {
 			} else {
 				renderNotes(notes, &noteList, false, rowStart, !focusGoals)
 			}
+			// Footer hint
+			if height > 3 {
+				hintStyle := tcell.StyleDefault.Foreground(tcell.ColorDarkGray)
+				hint := "[j/k] Navigate  [a] Add  [c] Complete  [i] Edit  [A] Archive  [Tab] Goals  [H] History"
+				writeStyledLine(screen, 0, height-1, truncate(hint, width), hintStyle)
+			}
 		case viewArchive:
 			list := getArchivedNotes()
 			if len(list) == 0 && height > 3 {
 				writeStyledLine(screen, 0, 3, truncate("Archive is empty.", width), infoStyle)
 			} else {
 				renderNotes(list, &archiveList, true, 3, true)
+			}
+			// Footer hint
+			if height > 3 {
+				hintStyle := tcell.StyleDefault.Foreground(tcell.ColorDarkGray)
+				hint := "[j/k] Navigate  [Enter] Attach  [D] Delete  [Alt+A] Back"
+				writeStyledLine(screen, 0, height-1, truncate(hint, width), hintStyle)
 			}
 		case viewEdit:
 			bodyStyle := tcell.StyleDefault.Foreground(tcell.ColorLightGreen)
@@ -1687,7 +1705,9 @@ func runUI(args []string) error {
 				writeStyledLine(screen, 0, 3, truncate("Editing note (Enter to save, Esc to cancel):", width), infoStyle)
 				writeStyledLine(screen, 0, 5, truncate(string(prompt.text), width), bodyStyle)
 				if prompt.active {
-					cx := prompt.cursor
+					// Calculate cursor position using display width (Chinese chars = 2)
+					textBeforeCursor := string(prompt.text[:prompt.cursor])
+					cx := runewidth.StringWidth(textBeforeCursor)
 					if cx > width-1 {
 						cx = width - 1
 					}
@@ -1841,7 +1861,11 @@ func runUI(args []string) error {
 			line := label + string(prompt.text)
 			writeStyledLine(screen, 0, height-1, truncate(line, width), tcell.StyleDefault.Foreground(tcell.ColorLightGreen))
 
-			cx := len(label) + prompt.cursor
+			// Calculate cursor position using display width (Chinese chars = 2)
+			labelWidth := runewidth.StringWidth(label)
+			textBeforeCursor := string(prompt.text[:prompt.cursor])
+			textWidth := runewidth.StringWidth(textBeforeCursor)
+			cx := labelWidth + textWidth
 			if cx > width-1 {
 				cx = width - 1
 			}
